@@ -66,10 +66,7 @@
     }
 
     .credit-name.highlight {
-      color: #fff;
-      opacity: 1;
       text-shadow: 0 0 20px rgba(255,255,255,0.8);
-      transition: text-shadow 1s ease;
     }
 
     .credit-divider {
@@ -221,11 +218,14 @@
           }
         });
         const rows = await res.json();
-        if (rows && rows.length) {
-          credits = [...baseCredits, { divider: "Also Starring" }];
+        credits = [...baseCredits];
+        if (Array.isArray(rows) && rows.length) {
+          credits.push({ divider: "Also Starring" });
           rows.forEach(r => credits.push({ label: r.role, name: r.name }));
         }
-      } catch(e) {}
+      } catch(e) {
+        credits = [...baseCredits];
+      }
       render();
     }
 
@@ -282,14 +282,9 @@
 
     function step(timestamp) {
       if (!startTime) startTime = timestamp;
-      const elapsed = (timestamp - startTime) / 1000;
       const currentSpeed = SPEED * speedMultiplier;
       offset = offset - (currentSpeed / 60);
-
-      if (offset <= -copyHeight) {
-        offset += copyHeight;
-      }
-
+      if (offset <= -copyHeight) offset += copyHeight;
       strip.style.transform = 'translateY(' + offset + 'px)';
       startTime = timestamp;
       animationId = requestAnimationFrame(step);
@@ -298,30 +293,21 @@
     function jumpToEntry(index) {
       if (jumpInProgress) return;
       jumpInProgress = true;
-
-      // Find the row in the first copy
       const rows = strip.querySelectorAll('.credit-row');
       let targetRow = null;
       rows.forEach(row => {
-        if (parseInt(row.dataset.index) === index) {
-          if (!targetRow) targetRow = row;
-        }
+        if (parseInt(row.dataset.index) === index && !targetRow) targetRow = row;
       });
-
       if (!targetRow) { jumpInProgress = false; return; }
-
-      // Speed up to reach the entry
       speedMultiplier = 8;
-
       const checkInterval = setInterval(() => {
         const rowTop = targetRow.getBoundingClientRect().top;
         const viewMiddle = window.innerHeight / 2;
-
         if (rowTop <= viewMiddle + 40 && rowTop >= viewMiddle - 40) {
           clearInterval(checkInterval);
-          speedMultiplier = 0.3; // slow right down as name passes
+          speedMultiplier = 0.3;
           setTimeout(() => {
-            speedMultiplier = 1; // back to normal
+            speedMultiplier = 1;
             jumpInProgress = false;
           }, 2000);
         }
@@ -345,20 +331,15 @@
       const name = nameInput.value.trim();
       const role = roleInput.value.trim();
       if (!name || !role) return;
-
       await saveToDB(name, toTitleCase(role));
-
-      // Add to credits array
       if (!credits.find(c => c.divider === "Also Starring")) {
         credits.push({ divider: "Also Starring" });
       }
       credits.push({ label: toTitleCase(role), name });
       userEntryIndex = credits.length - 1;
-
       nameInput.value = '';
       roleInput.value = '';
       showToast();
-
       const currentOffset = offset;
       strip.innerHTML = buildCopy() + buildCopy();
       requestAnimationFrame(() => {
