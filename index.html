@@ -94,7 +94,7 @@
       gap: 0.5rem;
     }
 
-    #credit-input {
+    input {
       flex: 1;
       background: rgba(255,255,255,0.07);
       border: 1px solid rgba(255,255,255,0.2);
@@ -107,8 +107,8 @@
       outline: none;
       transition: border-color 0.2s;
     }
-    #credit-input::placeholder { color: rgba(255,255,255,0.3); }
-    #credit-input:focus { border-color: rgba(255,255,255,0.5); }
+    input::placeholder { color: rgba(255,255,255,0.3); }
+    input:focus { border-color: rgba(255,255,255,0.5); }
 
     #add-btn {
       background: rgba(255,255,255,0.1);
@@ -121,6 +121,7 @@
       padding: 0.55rem 1.1rem;
       cursor: pointer;
       transition: background 0.2s;
+      white-space: nowrap;
     }
     #add-btn:hover { background: rgba(255,255,255,0.18); }
 
@@ -145,15 +146,19 @@
   </div>
 
   <div id="input-bar">
-    <div id="toast">Credit Added.</div>
+    <div id="toast">Credit added — you're in the roll.</div>
     <form id="credit-form">
-      <input id="credit-input" type="text" placeholder="Add a new credit category…" maxlength="60" autocomplete="off" />
-      <button id="add-btn" type="submit">Add</button>
+      <input id="name-input" type="text" placeholder="Your name" maxlength="40" autocomplete="off" />
+      <input id="role-input" type="text" placeholder="Your role" maxlength="60" autocomplete="off" />
+      <button id="add-btn" type="submit">Add my credit</button>
     </form>
   </div>
 
   <script>
-    const credits = [
+    const SUPABASE_URL = 'https://lnpqumqesmygyjdudioh.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxucHF1bXFlc215Z3lqZHVkaW9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDY2OTcsImV4cCI6MjA5MzcyMjY5N30.Jc605lOaj3CdEGNkOag-a_5LmpDeQFc6TVqfc59aUlk';
+
+    const baseCredits = [
       { divider: "A Film By" },
       { label: "Directed By", name: "Me" },
       { label: "Produced By", name: "Me" },
@@ -194,6 +199,40 @@
       { label: "Chief Motivator", name: "Me" },
       { label: "Best Boy", name: "Me" },
     ];
+
+    let credits = [...baseCredits];
+
+    async function loadFromDB() {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/credits?select=name,role&order=id.asc`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        const rows = await res.json();
+        if (rows && rows.length) {
+          credits = [...baseCredits, { divider: "Also Starring" }];
+          rows.forEach(r => credits.push({ label: r.role, name: r.name }));
+        }
+      } catch(e) {}
+      render();
+    }
+
+    async function saveToDB(name, role) {
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/credits`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ name, role })
+        });
+      } catch(e) {}
+    }
 
     const LOWERCASE_WORDS = new Set(['by']);
     function toTitleCase(str) {
@@ -242,25 +281,27 @@
       animationId = requestAnimationFrame(step);
     }
 
-    render();
-
     const form = document.getElementById('credit-form');
-    const input = document.getElementById('credit-input');
+    const nameInput = document.getElementById('name-input');
+    const roleInput = document.getElementById('role-input');
     const toast = document.getElementById('toast');
     let toastTimer = null;
 
     function showToast() {
       clearTimeout(toastTimer);
       toast.classList.add('visible');
-      toastTimer = setTimeout(() => toast.classList.remove('visible'), 2000);
+      toastTimer = setTimeout(() => toast.classList.remove('visible'), 3000);
     }
 
-    form.addEventListener('submit', e => {
+    form.addEventListener('submit', async e => {
       e.preventDefault();
-      const raw = input.value.trim();
-      if (!raw) return;
-      credits.push({ label: toTitleCase(raw), name: "Me" });
-      input.value = '';
+      const name = nameInput.value.trim();
+      const role = roleInput.value.trim();
+      if (!name || !role) return;
+      await saveToDB(name, toTitleCase(role));
+      credits.push({ label: toTitleCase(role), name });
+      nameInput.value = '';
+      roleInput.value = '';
       showToast();
       const currentOffset = offset;
       strip.innerHTML = buildCopy() + buildCopy();
@@ -276,6 +317,8 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(render, 200);
     });
+
+    loadFromDB();
   </script>
 </body>
 </html>
