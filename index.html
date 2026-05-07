@@ -219,7 +219,7 @@
 
     async function loadFromDB() {
       try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/Credits?select=name,role&order=id`, {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/credits?select=name,role&order=id`, {
           headers: {
             'apikey': SUPABASE_KEY,
             'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -239,7 +239,7 @@
 
     async function saveToDB(name, role) {
       try {
-        await fetch(`${SUPABASE_URL}/rest/v1/Credits`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/credits`, {
           method: 'POST',
           headers: {
             'apikey': SUPABASE_KEY,
