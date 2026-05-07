@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Credits Pending</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: Helvetica, Arial, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #stage {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #strip {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      width: min(700px, 90vw);
+    }
+
+    .credits-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 0.88rem;
+      padding: 6vh 0;
+    }
+
+    .credit-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 2rem;
+    }
+
+    .credit-label {
+      font-size: clamp(0.9rem, 2.2vw, 1.25rem);
+      letter-spacing: 0.04em;
+      color: #fff;
+      flex: 1;
+      text-align: left;
+    }
+
+    .credit-name {
+      font-size: clamp(0.9rem, 2.2vw, 1.25rem);
+      letter-spacing: 0.04em;
+      color: #fff;
+      flex: 1;
+      text-align: right;
+    }
+
+    .credit-divider {
+      text-align: center;
+      font-size: clamp(0.6rem, 1.4vw, 0.8rem);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #555;
+      margin-top: 1.76rem;
+      margin-bottom: 1.76rem;
+    }
+
+    #input-bar {
+      position: fixed;
+      bottom: 3.5rem;
+      left: 0;
+      width: 100%;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0 1.5rem;
+    }
+
+    #input-bar form {
+      display: flex;
+      width: min(500px, 100%);
+      gap: 0.5rem;
+    }
+
+    #credit-input {
+      flex: 1;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px;
+      color: #fff;
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+      padding: 0.55rem 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #credit-input::placeholder { color: rgba(255,255,255,0.3); }
+    #credit-input:focus { border-color: rgba(255,255,255,0.5); }
+
+    #add-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 4px;
+      color: #fff;
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      padding: 0.55rem 1.1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #add-btn:hover { background: rgba(255,255,255,0.18); }
+
+    #toast {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      height: 1.2rem;
+    }
+    #toast.visible { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div id="stage">
+    <div id="strip"></div>
+  </div>
+
+  <div id="input-bar">
+    <div id="toast">Credit Added.</div>
+    <form id="credit-form">
+      <input id="credit-input" type="text" placeholder="Add a new credit category…" maxlength="60" autocomplete="off" />
+      <button id="add-btn" type="submit">Add</button>
+    </form>
+  </div>
+
+  <script>
+    const credits = [
+      { divider: "A Film By" },
+      { label: "Directed By", name: "Me" },
+      { label: "Produced By", name: "Me" },
+      { label: "Written By", name: "Me" },
+      { divider: "Cast" },
+      { label: "Lead Role", name: "Me" },
+      { label: "Supporting Role", name: "Me" },
+      { label: "Comic Relief", name: "Me" },
+      { label: "The Villain", name: "Me" },
+      { label: "The Hero", name: "Me" },
+      { divider: "Crew" },
+      { label: "Director Of Photography", name: "Me" },
+      { label: "Film Editor", name: "Me" },
+      { label: "Production Designer", name: "Me" },
+      { label: "Costume Designer", name: "Me" },
+      { label: "Sound Designer", name: "Me" },
+      { label: "Visual Effects", name: "Me" },
+      { label: "Special Effects", name: "Me" },
+      { label: "Stunt Coordinator", name: "Me" },
+      { label: "Casting By", name: "Me" },
+      { divider: "Music" },
+      { label: "Original Score", name: "Me" },
+      { label: "Music Supervisor", name: "Me" },
+      { label: "Theme Song Performed By", name: "Me" },
+      { divider: "Post Production" },
+      { label: "Colorist", name: "Me" },
+      { label: "Title Design", name: "Me" },
+      { label: "Subtitles", name: "Me" },
+      { divider: "Business" },
+      { label: "Executive Producer", name: "Me" },
+      { label: "Co-Executive Producer", name: "Me" },
+      { label: "Line Producer", name: "Me" },
+      { label: "Production Accountant", name: "Me" },
+      { label: "Legal Counsel", name: "Me" },
+      { divider: "Special Thanks" },
+      { label: "Moral Support", name: "Me" },
+      { label: "Coffee Provider", name: "Me" },
+      { label: "Chief Motivator", name: "Me" },
+      { label: "Best Boy", name: "Me" },
+    ];
+
+    const LOWERCASE_WORDS = new Set(['by']);
+    function toTitleCase(str) {
+      return str.toLowerCase().replace(/\b\w+/g, (word, offset) => {
+        if (offset !== 0 && LOWERCASE_WORDS.has(word)) return word;
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      });
+    }
+
+    function buildRow(entry) {
+      if (entry.divider) return '<div class="credit-divider">' + entry.divider + '</div>';
+      return '<div class="credit-row"><span class="credit-label">' + toTitleCase(entry.label) + '</span><span class="credit-name">' + entry.name + '</span></div>';
+    }
+
+    function buildCopy() {
+      return '<div class="credits-copy">' + credits.map(buildRow).join('') + '</div>';
+    }
+
+    const strip = document.getElementById('strip');
+    const SPEED = 60;
+    let animationId = null;
+    let startTime = null;
+    let copyHeight = 0;
+    let offset = 0;
+
+    function render() {
+      strip.innerHTML = buildCopy() + buildCopy();
+      if (animationId) cancelAnimationFrame(animationId);
+      requestAnimationFrame(() => {
+        copyHeight = strip.querySelector('.credits-copy').offsetHeight;
+        offset = window.innerHeight;
+        startTime = null;
+        animationId = requestAnimationFrame(step);
+      });
+    }
+
+    function step(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const elapsed = (timestamp - startTime) / 1000;
+      offset = window.innerHeight - elapsed * SPEED;
+      if (offset <= -copyHeight) {
+        offset += copyHeight;
+        startTime = timestamp - ((window.innerHeight - offset) / SPEED) * 1000;
+      }
+      strip.style.transform = 'translateY(' + offset + 'px)';
+      animationId = requestAnimationFrame(step);
+    }
+
+    render();
+
+    const form = document.getElementById('credit-form');
+    const input = document.getElementById('credit-input');
+    const toast = document.getElementById('toast');
+    let toastTimer = null;
+
+    function showToast() {
+      clearTimeout(toastTimer);
+      toast.classList.add('visible');
+      toastTimer = setTimeout(() => toast.classList.remove('visible'), 2000);
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const raw = input.value.trim();
+      if (!raw) return;
+      credits.push({ label: toTitleCase(raw), name: "Me" });
+      input.value = '';
+      showToast();
+      const currentOffset = offset;
+      strip.innerHTML = buildCopy() + buildCopy();
+      requestAnimationFrame(() => {
+        copyHeight = strip.querySelector('.credits-copy').offsetHeight;
+        offset = currentOffset;
+        strip.style.transform = 'translateY(' + offset + 'px)';
+      });
+    });
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(render, 200);
+    });
+  </script>
+</body>
+</html>
