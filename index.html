@@ -65,6 +65,13 @@
       text-align: right;
     }
 
+    .credit-name.highlight {
+      color: #fff;
+      opacity: 1;
+      text-shadow: 0 0 20px rgba(255,255,255,0.8);
+      transition: text-shadow 1s ease;
+    }
+
     .credit-divider {
       text-align: center;
       font-size: clamp(0.6rem, 1.4vw, 0.8rem);
@@ -130,7 +137,7 @@
       font-size: 0.78rem;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.55);
+      color: rgba(255,255,255,0.8);
       opacity: 0;
       transition: opacity 0.3s ease;
       pointer-events: none;
@@ -146,7 +153,7 @@
   </div>
 
   <div id="input-bar">
-    <div id="toast">Credit added — you're in the roll.</div>
+    <div id="toast">Your credit is rolling.</div>
     <form id="credit-form">
       <input id="name-input" type="text" placeholder="Your name" maxlength="40" autocomplete="off" />
       <input id="role-input" type="text" placeholder="Your role" maxlength="60" autocomplete="off" />
@@ -201,6 +208,9 @@
     ];
 
     let credits = [...baseCredits];
+    let userEntryIndex = -1;
+    let speedMultiplier = 1;
+    let jumpInProgress = false;
 
     async function loadFromDB() {
       try {
@@ -242,13 +252,14 @@
       });
     }
 
-    function buildRow(entry) {
+    function buildRow(entry, index) {
       if (entry.divider) return '<div class="credit-divider">' + entry.divider + '</div>';
-      return '<div class="credit-row"><span class="credit-label">' + toTitleCase(entry.label) + '</span><span class="credit-name">' + entry.name + '</span></div>';
+      const highlight = (index === userEntryIndex) ? ' highlight' : '';
+      return '<div class="credit-row" data-index="' + index + '"><span class="credit-label">' + toTitleCase(entry.label) + '</span><span class="credit-name' + highlight + '">' + entry.name + '</span></div>';
     }
 
     function buildCopy() {
-      return '<div class="credits-copy">' + credits.map(buildRow).join('') + '</div>';
+      return '<div class="credits-copy">' + credits.map((c, i) => buildRow(c, i)).join('') + '</div>';
     }
 
     const strip = document.getElementById('strip');
@@ -272,13 +283,49 @@
     function step(timestamp) {
       if (!startTime) startTime = timestamp;
       const elapsed = (timestamp - startTime) / 1000;
-      offset = window.innerHeight - elapsed * SPEED;
+      const currentSpeed = SPEED * speedMultiplier;
+      offset = offset - (currentSpeed / 60);
+
       if (offset <= -copyHeight) {
         offset += copyHeight;
-        startTime = timestamp - ((window.innerHeight - offset) / SPEED) * 1000;
       }
+
       strip.style.transform = 'translateY(' + offset + 'px)';
+      startTime = timestamp;
       animationId = requestAnimationFrame(step);
+    }
+
+    function jumpToEntry(index) {
+      if (jumpInProgress) return;
+      jumpInProgress = true;
+
+      // Find the row in the first copy
+      const rows = strip.querySelectorAll('.credit-row');
+      let targetRow = null;
+      rows.forEach(row => {
+        if (parseInt(row.dataset.index) === index) {
+          if (!targetRow) targetRow = row;
+        }
+      });
+
+      if (!targetRow) { jumpInProgress = false; return; }
+
+      // Speed up to reach the entry
+      speedMultiplier = 8;
+
+      const checkInterval = setInterval(() => {
+        const rowTop = targetRow.getBoundingClientRect().top;
+        const viewMiddle = window.innerHeight / 2;
+
+        if (rowTop <= viewMiddle + 40 && rowTop >= viewMiddle - 40) {
+          clearInterval(checkInterval);
+          speedMultiplier = 0.3; // slow right down as name passes
+          setTimeout(() => {
+            speedMultiplier = 1; // back to normal
+            jumpInProgress = false;
+          }, 2000);
+        }
+      }, 50);
     }
 
     const form = document.getElementById('credit-form');
@@ -290,7 +337,7 @@
     function showToast() {
       clearTimeout(toastTimer);
       toast.classList.add('visible');
-      toastTimer = setTimeout(() => toast.classList.remove('visible'), 3000);
+      toastTimer = setTimeout(() => toast.classList.remove('visible'), 4000);
     }
 
     form.addEventListener('submit', async e => {
@@ -298,17 +345,27 @@
       const name = nameInput.value.trim();
       const role = roleInput.value.trim();
       if (!name || !role) return;
+
       await saveToDB(name, toTitleCase(role));
+
+      // Add to credits array
+      if (!credits.find(c => c.divider === "Also Starring")) {
+        credits.push({ divider: "Also Starring" });
+      }
       credits.push({ label: toTitleCase(role), name });
+      userEntryIndex = credits.length - 1;
+
       nameInput.value = '';
       roleInput.value = '';
       showToast();
+
       const currentOffset = offset;
       strip.innerHTML = buildCopy() + buildCopy();
       requestAnimationFrame(() => {
         copyHeight = strip.querySelector('.credits-copy').offsetHeight;
         offset = currentOffset;
         strip.style.transform = 'translateY(' + offset + 'px)';
+        setTimeout(() => jumpToEntry(userEntryIndex), 300);
       });
     });
 
