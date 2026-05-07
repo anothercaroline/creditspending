@@ -6,7 +6,6 @@
   <title>Credits Pending</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       background: #000;
       color: #fff;
@@ -17,7 +16,6 @@
       flex-direction: column;
       align-items: center;
     }
-
     #stage {
       position: fixed;
       top: 0; left: 0;
@@ -27,28 +25,24 @@
       pointer-events: none;
       z-index: 0;
     }
-
     #strip {
       display: flex;
       flex-direction: column;
       align-items: stretch;
       width: min(700px, 90vw);
     }
-
     .credits-copy {
       display: flex;
       flex-direction: column;
       gap: 0.88rem;
       padding: 6vh 0;
     }
-
     .credit-row {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
       gap: 2rem;
     }
-
     .credit-label {
       font-size: clamp(0.9rem, 2.2vw, 1.25rem);
       letter-spacing: 0.04em;
@@ -56,7 +50,6 @@
       flex: 1;
       text-align: left;
     }
-
     .credit-name {
       font-size: clamp(0.9rem, 2.2vw, 1.25rem);
       letter-spacing: 0.04em;
@@ -64,11 +57,9 @@
       flex: 1;
       text-align: right;
     }
-
     .credit-name.highlight {
       text-shadow: 0 0 20px rgba(255,255,255,0.8);
     }
-
     .credit-divider {
       text-align: center;
       font-size: clamp(0.6rem, 1.4vw, 0.8rem);
@@ -78,7 +69,6 @@
       margin-top: 1.76rem;
       margin-bottom: 1.76rem;
     }
-
     #input-bar {
       position: fixed;
       bottom: 3.5rem;
@@ -91,13 +81,11 @@
       gap: 0.75rem;
       padding: 0 1.5rem;
     }
-
     #input-bar form {
       display: flex;
       width: min(500px, 100%);
       gap: 0.5rem;
     }
-
     input {
       flex: 1;
       background: rgba(255,255,255,0.07);
@@ -113,7 +101,6 @@
     }
     input::placeholder { color: rgba(255,255,255,0.3); }
     input:focus { border-color: rgba(255,255,255,0.5); }
-
     #add-btn {
       background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.25);
@@ -128,7 +115,6 @@
       white-space: nowrap;
     }
     #add-btn:hover { background: rgba(255,255,255,0.18); }
-
     #toast {
       font-family: Helvetica, Arial, sans-serif;
       font-size: 0.78rem;
@@ -144,11 +130,9 @@
   </style>
 </head>
 <body>
-
   <div id="stage">
     <div id="strip"></div>
   </div>
-
   <div id="input-bar">
     <div id="toast">Your credit is rolling.</div>
     <form id="credit-form">
@@ -157,7 +141,6 @@
       <button id="add-btn" type="submit">Add my credit</button>
     </form>
   </div>
-
   <script>
     const SUPABASE_URL = 'https://lnpqumqesmygyjdudioh.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxucHF1bXFlc215Z3lqZHVkaW9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDY2OTcsImV4cCI6MjA5MzcyMjY5N30.Jc605lOaj3CdEGNkOag-a_5LmpDeQFc6TVqfc59aUlk';
@@ -211,7 +194,7 @@
 
     async function loadFromDB() {
       try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/credits?select=name,role&order=id.asc`, {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/credits?select=name,role&order=id`, {
           headers: {
             'apikey': SUPABASE_KEY,
             'Authorization': `Bearer ${SUPABASE_KEY}`
