@@ -133,7 +133,7 @@
     }
     #toast.visible { opacity: 1; }
     #tee-cta {
-      display: block;
+      display: none;
       width: 100%;
       max-width: 560px;
       text-align: center;
@@ -150,6 +150,7 @@
       margin-bottom: 1.2rem;
       transition: background 0.2s;
     }
+    #tee-cta.show { display: block; }
     #tee-cta:hover { background: rgba(255,255,255,0.18); }
   </style>
 </head>
@@ -166,7 +167,7 @@
       <input id="role-input" type="text" placeholder="Your role" maxlength="60" autocomplete="off" />
       <button id="add-btn" type="submit">Add</button>
     </form>
-    <a id="tee-cta" href="https://www.csuper.co/products/csuper-credits-pending-drop-shoulder-tee-black" target="_blank">Get the Credits Pending Tee</a>
+    <a id="tee-cta" href="https://www.csuper.co/products/csuper-credits-pending-drop-shoulder-tee-black" target="_blank">Get my credits shirt</a>
   </div>
 
   <script>
@@ -274,7 +275,7 @@
     }
 
     const strip = document.getElementById('strip');
-    const SPEED = 60;
+    const SPEED = 100;
     let animationId = null;
     let lastTimestamp = null;
     let copyHeight = 0;
@@ -329,6 +330,7 @@
     const nameInput = document.getElementById('name-input');
     const roleInput = document.getElementById('role-input');
     const toast = document.getElementById('toast');
+    const teeCta = document.getElementById('tee-cta');
     let toastTimer = null;
 
     function showToast() {
@@ -351,6 +353,8 @@
       nameInput.value = '';
       roleInput.value = '';
       showToast();
+      form.style.display = 'none';
+      teeCta.classList.add('show');
       const currentOffset = offset;
       strip.innerHTML = buildCopy() + buildCopy();
       requestAnimationFrame(() => {
