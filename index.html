@@ -84,8 +84,14 @@
     }
     #input-bar form {
       display: flex;
+      flex-direction: column;
       width: 100%;
       max-width: 560px;
+      gap: 0.4rem;
+    }
+    .form-row {
+      display: flex;
+      width: 100%;
       gap: 0.4rem;
       flex-wrap: nowrap;
     }
@@ -163,9 +169,14 @@
   <div id="input-bar">
     <div id="toast">Your credit is rolling.</div>
     <form id="credit-form">
-      <input id="name-input" type="text" placeholder="Your name" maxlength="40" autocomplete="off" />
-      <input id="role-input" type="text" placeholder="Your role" maxlength="60" autocomplete="off" />
-      <button id="add-btn" type="submit">Add</button>
+      <div class="form-row">
+        <input id="name-input" type="text" placeholder="Your name" maxlength="40" autocomplete="off" />
+        <input id="role-input" type="text" placeholder="Your role" maxlength="60" autocomplete="off" />
+      </div>
+      <div class="form-row">
+        <input id="email-input" type="email" placeholder="Email for 10% off your shirt (optional)" maxlength="80" autocomplete="off" />
+        <button id="add-btn" type="submit">Add</button>
+      </div>
     </form>
     <a id="tee-cta" href="https://www.csuper.co/products/csuper-credits-pending-drop-shoulder-tee-black" target="_blank">Get my credits shirt</a>
   </div>
@@ -173,6 +184,13 @@
   <script>
     const SUPABASE_URL = 'https://lnpqumqesmygyjdudioh.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxucHF1bXFlc215Z3lqZHVkaW9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDY2OTcsImV4cCI6MjA5MzcyMjY5N30.Jc605lOaj3CdEGNkOag-a_5LmpDeQFc6TVqfc59aUlk';
+
+    // ---- KLAVIYO: fill these two in ----
+    // KLAVIYO_PUBLIC_KEY = your 6-character site ID (Settings > API keys). Safe to expose client-side.
+    // KLAVIYO_LIST_ID    = the List ID your 10%-off flow listens to. Set that list to SINGLE opt-in.
+    const KLAVIYO_PUBLIC_KEY = 'Uwt9Wb';
+    const KLAVIYO_LIST_ID = 'V9E8Pj';
+    const KLAVIYO_REVISION = '2025-01-15';
 
     const baseCredits = [
       { divider: "A Film By" },
@@ -256,6 +274,42 @@
       } catch(e) {}
     }
 
+    // Email goes to Klaviyo only, never to Supabase (the credits table is publicly readable).
+    async function subscribeKlaviyo(email) {
+      if (KLAVIYO_PUBLIC_KEY === 'XXXXXX' || KLAVIYO_LIST_ID === 'XXXXXX') return;
+      try {
+        await fetch(`https://a.klaviyo.com/client/subscriptions/?company_id=${KLAVIYO_PUBLIC_KEY}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'revision': KLAVIYO_REVISION
+          },
+          body: JSON.stringify({
+            data: {
+              type: 'subscription',
+              attributes: {
+                custom_source: 'Credits Pending miniverse',
+                profile: {
+                  data: {
+                    type: 'profile',
+                    attributes: {
+                      email: email,
+                      subscriptions: { email: { marketing: { consent: 'SUBSCRIBED' } } }
+                    }
+                  }
+                }
+              },
+              relationships: { list: { data: { type: 'list', id: KLAVIYO_LIST_ID } } }
+            }
+          })
+        });
+      } catch(e) {}
+    }
+
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
     const LOWERCASE_WORDS = new Set(['by']);
     function toTitleCase(str) {
       return str.toLowerCase().replace(/\b\w+/g, (word, offset) => {
@@ -329,12 +383,14 @@
     const form = document.getElementById('credit-form');
     const nameInput = document.getElementById('name-input');
     const roleInput = document.getElementById('role-input');
+    const emailInput = document.getElementById('email-input');
     const toast = document.getElementById('toast');
     const teeCta = document.getElementById('tee-cta');
     let toastTimer = null;
 
-    function showToast() {
+    function showToast(message) {
       clearTimeout(toastTimer);
+      toast.textContent = message;
       toast.classList.add('visible');
       toastTimer = setTimeout(() => toast.classList.remove('visible'), 4000);
     }
@@ -343,8 +399,14 @@
       e.preventDefault();
       const name = nameInput.value.trim();
       const role = roleInput.value.trim();
+      const email = emailInput.value.trim();
       if (!name || !role) return;
+
       await saveToDB(name, toTitleCase(role));
+
+      const gotEmail = email && isValidEmail(email);
+      if (gotEmail) subscribeKlaviyo(email);
+
       if (!credits.find(c => c.divider === "Also Starring")) {
         credits.push({ divider: "Also Starring" });
       }
@@ -352,7 +414,8 @@
       userEntryIndex = credits.length - 1;
       nameInput.value = '';
       roleInput.value = '';
-      showToast();
+      emailInput.value = '';
+      showToast(gotEmail ? 'Your credit is rolling. Check your inbox for 10% off.' : 'Your credit is rolling.');
       form.style.display = 'none';
       teeCta.classList.add('show');
       const currentOffset = offset;
