@@ -192,6 +192,12 @@
     const KLAVIYO_LIST_ID = 'V9E8Pj';
     const KLAVIYO_REVISION = '2025-01-15';
 
+    // ---- CAMPAIGN (buyer mode) ----
+    // Visitors arriving with ?ref=credits-email get the shirt CTA swapped for the
+    // workwear collection, with the discount auto-applied at checkout.
+    const DISCOUNT_CODE = 'ITSALLME';
+    const WORKWEAR_COLLECTION = '/collections/csuper-creative-workwear';
+
     const baseCredits = [
       { divider: "A Film By" },
       { label: "Directed By", name: "Me" },
@@ -388,6 +394,18 @@
     const teeCta = document.getElementById('tee-cta');
     let toastTimer = null;
 
+    // Buyer mode: visitors arriving from the email campaign (?ref=credits-email)
+    // already have an account and the ITSALLME code, so we hide the on-site email
+    // capture to avoid presenting a second, competing discount rail.
+    const BUYER_MODE = new URLSearchParams(window.location.search).get('ref') === 'credits-email';
+    const addBtn = document.getElementById('add-btn');
+    if (BUYER_MODE) {
+      emailInput.style.display = 'none';
+      addBtn.style.flex = '1';
+      teeCta.href = 'https://www.csuper.co/discount/' + DISCOUNT_CODE + '?redirect=' + WORKWEAR_COLLECTION;
+      teeCta.textContent = 'Shop the range';
+    }
+
     function showToast(message) {
       clearTimeout(toastTimer);
       toast.textContent = message;
@@ -399,7 +417,7 @@
       e.preventDefault();
       const name = nameInput.value.trim();
       const role = roleInput.value.trim();
-      const email = emailInput.value.trim();
+      const email = BUYER_MODE ? '' : emailInput.value.trim();
       if (!name || !role) return;
 
       await saveToDB(name, toTitleCase(role));
